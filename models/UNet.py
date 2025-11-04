@@ -1,3 +1,4 @@
+# video_model.py
 import torch
 import torch.nn as nn
 import numpy as np
@@ -112,15 +113,14 @@ class UNet(nn.Module):
     def __init__(
         self,
         input_size=(6, 256, 256), # (T, H, W)
-        in_channels=16,         # C_x + C_y
-        out_channels=8,         # C_x (噪声)
-        dim=64,                # 用作时间嵌入的维度
+        in_channels_c=16,         # C_x + C_y
+        out_channels_c=8,         # C_x (噪声)
+        time_emb_dim=64,          # 用作时间嵌入的维度
     ):
         super().__init__()
         self.time_dim = input_size[0] # T=6
-        self.in_channels_c = in_channels # C_in = 16
-        self.out_channels_c = out_channels # C_out = 8
-        time_emb_dim = dim # 重用 'dim' 作为时间嵌入维度
+        self.in_channels_c = in_channels_c # C_in = 16
+        self.out_channels_c = out_channels_c # C_out = 8
 
         # 1. 计算 2D U-Net 的输入和输出通道
         # (B, T, C_in, H, W) -> (B, T*C_in, H, W)
@@ -160,9 +160,6 @@ class UNet(nn.Module):
         # (B, 256, 64, 64)
         self.up3 = UpBlock2D(256, 256, 128, time_emb_dim=time_emb_dim)
         # (B, 128, 128, 128)
-        
-        # --- 🔴 修正点 1 ---
-        # skip_channels 应该是 64 (来自 x1), 而不是 128 (来自 x2)
         self.up4 = UpBlock2D(128, 64, 64, time_emb_dim=time_emb_dim)
         # (B, 64, 256, 256)
         
@@ -231,9 +228,6 @@ class UNet(nn.Module):
         x_up = self.up1(x_bot, x5, time_emb) # (1024->512) + skip(512) -> (B, 512, 32, 32)
         x_up = self.up2(x_up, x4, time_emb) # (512->256)  + skip(512) -> (B, 256, 64, 64)
         x_up = self.up3(x_up, x3, time_emb) # (256->128)  + skip(256) -> (B, 128, 128, 128)
-        
-        # --- 🔴 修正点 2 ---
-        # skip connection 应该使用 x1, 而不是 x2
         x_up = self.up4(x_up, x1, time_emb) # (128->64)   + skip(64) -> (B, 64, 256, 256)
         
         logits_2d = self.outc(x_up)      # -> (B, 48, 256, 256)

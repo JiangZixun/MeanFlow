@@ -1,0 +1,42 @@
+# config.yaml
+# 所有实验参数的配置文件
+
+data:
+  data_path: "/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day.h5"
+  json_path: "/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day_all.json"
+  dataset_prefix: "2022"
+  train_ratio: 0.9
+  random_flip: 0.5
+  num_workers: 8
+
+model:
+  # 对应 UNet 的参数
+  input_size: [6, 256, 256]  # (T, H, W)
+  in_channels_c: 16          # C_x + C_y (8+8)
+  out_channels_c: 8           # C_x
+  time_emb_dim: 64         # UNet 中 t 和 r 嵌入的维度
+
+meanflow:
+  # 对应 MeanFlow 的参数
+  flow_ratio: 1.0            # 1.0 = 仅标准流匹配, 0.5 = 混合 JVP 损失
+  time_dist: ['lognorm', -0.4, 1.0]
+  cfg_ratio: 0.10
+  cfg_scale: 2.0
+  cfg_uncond: 'v'
+
+optimizer:
+  lr: 1.0e-4
+  weight_decay: 0.0
+
+scheduler:
+  num_warmup_steps: 5000
+
+training:
+  n_steps: 100000
+  gradient_clip_val: 1.0
+  # batch_size 将从命令行传入
+
+logging:
+  project_name: "MeanFlow_Himwari8"
+  log_every_n_steps: 100       # 终端和 Wandb 的 Loss 打印频率
+  save_step_frequency: 5000    # Checkpoint 和 可视化采样 频率

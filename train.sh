@@ -1,7 +1,13 @@
 cd /mnt/data1/MeanFlow/ 
 
-echo "Starting training..."
+echo "Starting training Meanflow ..."
 
-/home/jzx/anaconda3/envs/torchcfm/bin/python trainVideo.py
+# /home/jzx/anaconda3/envs/torchcfm/bin/python trainVideo.py
+/home/jzx/anaconda3/envs/torchcfm/bin/python train_UNet.py \
+    --config configs/UNet.yaml \
+    --log_dir logs/UNet_experiment \
+    --batch_size 8 \
+    --mode train \
+    --gpus 1
 
 echo "Training finished."

@@ -166,3 +166,4 @@ checkpoints/
 images/
 cifar/
 *.txt
+logs/
