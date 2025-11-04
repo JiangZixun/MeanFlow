@@ -11,9 +11,12 @@ import os
 
 
 if __name__ == '__main__':
-    n_steps = 200000
+    n_steps = 20000
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    batch_size = 48
+    if device == "cpu":
+        raise ValueError("This training script requires a CUDA-capable GPU.")
+    # batch_size = 48
+    batch_size = 16
     os.makedirs('images', exist_ok=True)
     os.makedirs('checkpoints', exist_ok=True)
     accelerator = Accelerator(mixed_precision='fp16')

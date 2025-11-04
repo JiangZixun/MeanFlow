@@ -67,7 +67,8 @@ class DiTBlock(nn.Module):
     def __init__(self, dim, num_heads, mlp_ratio=4.0):
         super().__init__()
         self.norm1 = RMSNorm(dim)
-        self.attn = Attention(dim, num_heads=num_heads, qkv_bias=True, qk_norm=True, norm_layer=RMSNorm)
+        # self.attn = Attention(dim, num_heads=num_heads, qkv_bias=True, qk_norm=True, norm_layer=RMSNorm)
+        self.attn = Attention(dim, num_heads=num_heads, qkv_bias=True)
         # flasth attn can not be used with jvp
         self.attn.fused_attn = False
         self.norm2 = RMSNorm(dim)
