@@ -13,8 +13,8 @@ model:
   # 对应 UNet 的参数
   input_size: [6, 256, 256]  # (T, H, W)
   in_channels_c: 16          # C_x + C_y (8+8)
-  out_channels_c: 8           # C_x
-  time_emb_dim: 64         # UNet 中 t 和 r 嵌入的维度
+  out_channels_c: 8          # C_x
+  time_emb_dim: 256          # UNet 中 t 和 r 嵌入的维度
 
 meanflow:
   # 对应 MeanFlow 的参数
@@ -25,14 +25,14 @@ meanflow:
   cfg_uncond: 'v'
 
 optimizer:
-  lr: 1.0e-4
+  lr: 1.0e-3
   weight_decay: 0.0
 
 scheduler:
   num_warmup_steps: 5000
 
 training:
-  n_steps: 100000
+  n_steps: 500000
   gradient_clip_val: 1.0
   # batch_size 将从命令行传入
 
