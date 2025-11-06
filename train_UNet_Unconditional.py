@@ -11,10 +11,11 @@ from transformers import get_linear_schedule_with_warmup
 
 # 导入你项目中的模块
 from dataset_btchw import Xiaoshan_6steps_30min_Dataset, Xiaoshan_6steps_30min_Test_Dataset
-from models.UNet import UNet
-from videoMeanflow import MeanFlow
+from models.UNet_Unconditional import UNet
+from videoMeanflow_Unconditional import MeanFlow
 from visualize import vis_himawari8_seq_btchw
 
+# --- VideoDataModule 保持不变 ---
 class VideoDataModule(pl.LightningDataModule):
     """
     封装数据加载的 Lightning DataModule
@@ -92,16 +93,17 @@ class VideoLightningModule(pl.LightningModule):
     """
     def __init__(self, model_config, meanflow_config, optimizer_config, scheduler_config, training_config, logging_config):
         super().__init__()
-        # 将所有配置保存为超参数，以便 W&B 记录
         self.save_hyperparameters()
 
-        # 1. 实例化模型和损失函数
+        # --- 🔴 修改 UNet 实例化 ---
         self.model = UNet(
             input_size=model_config['input_size'],
-            in_channels_c=model_config['in_channels_c'],
-            out_channels_c=model_config['out_channels_c'],
+            # 假设 'out_channels_c' 是 c_past 和 x_future 的通道数
+            data_channels_c=model_config['out_channels_c'], 
             time_emb_dim=model_config['time_emb_dim']
         )
+        
+        # --- 🔴 修改 MeanFlow 实例化 (移除 CFG) ---
         self.meanflow = MeanFlow(
             channels=model_config['out_channels_c'],
             time_dim=model_config['input_size'][0],
@@ -110,15 +112,14 @@ class VideoLightningModule(pl.LightningModule):
             normalizer=['minmax', None, None],
             flow_ratio=meanflow_config['flow_ratio'],
             time_dist=meanflow_config['time_dist'],
-            cfg_ratio=meanflow_config['cfg_ratio'],
-            cfg_scale=meanflow_config['cfg_scale'],
-            cfg_uncond=meanflow_config['cfg_uncond']
+            # 假设 jvp_api 在 config 中，如果不在，MeanFlow 会使用默认值 'autograd'
+            jvp_api=meanflow_config.get('jvp_api', 'autograd')
         )
         
-        # 验证dataloader的引用
         self.val_loader_iter = None
 
     def configure_optimizers(self):
+        # --- 保持不变 ---
         optimizer = torch.optim.AdamW(
             self.model.parameters(),
             lr=self.hparams.optimizer_config['lr'],
@@ -139,10 +140,10 @@ class VideoLightningModule(pl.LightningModule):
         }
 
     def training_step(self, batch, batch_idx):
+        # --- 保持不变 (逻辑已移至 MeanFlow.loss) ---
         c_past, x_future = batch
         loss, mse_val = self.meanflow.loss(self.model, x_future, c_past)
         
-        # 记录 loss 和 mse 到 W&B
         self.log('train/loss', loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('train/mse_loss', mse_val, on_step=True, on_epoch=False)
         self.log('learning_rate', self.trainer.optimizers[0].param_groups[0]['lr'], on_step=True, on_epoch=False)
@@ -150,16 +151,12 @@ class VideoLightningModule(pl.LightningModule):
         return loss
 
     def on_train_batch_end(self, outputs, batch, batch_idx):
-        """
-        在每个训练步骤结束时检查是否需要保存可视化图像
-        """
+        # --- 保持不变 (逻辑已移至 MeanFlow.sample_prediction) ---
         save_freq = self.hparams.logging_config['save_step_frequency']
         
-        # 仅在主进程 (rank 0) 且达到指定 step 时执行
         if self.trainer.is_global_zero and self.global_step > 0 and self.global_step % save_freq == 0:
             self.model.eval()
             
-            # 获取一个验证批次
             if self.val_loader_iter is None:
                 self.val_loader_iter = iter(self.trainer.datamodule.val_dataloader())
             
@@ -181,12 +178,10 @@ class VideoLightningModule(pl.LightningModule):
                     device=self.device
                 )
 
-            # 转移到 CPU 进行可视化
             c_past_sample = c_past_val[0].cpu()
             z_sample = z[0].cpu()
             x_future_sample = x_future_val[0].cpu()
             
-            # 释放 GPU 内存
             del c_past_val, x_future_val, z, val_batch
             torch.cuda.empty_cache()
 
@@ -194,7 +189,6 @@ class VideoLightningModule(pl.LightningModule):
             pred_list = [z_sample[t] for t in range(z_sample.shape[0])]
             target_list = [x_future_sample[t] for t in range(x_future_sample.shape[0])]
 
-            # 保存到 W&B logger 的目录中
             save_dir = os.path.join(self.trainer.logger.save_dir, "images", f"step_{self.global_step}")
             
             vis_himawari8_seq_btchw(
@@ -204,13 +198,11 @@ class VideoLightningModule(pl.LightningModule):
                 target_seq=target_list
             )
             
-            # 将模型切换回训练模式
             self.model.train()
 
     def test_step(self, batch, batch_idx):
+        # --- 保持不变 ---
         c_past, x_future = batch
-        # 使用 flow_ratio=1.0 进行评估 (如果需要)
-        # 你可能想在评估时使用不同的 meanflow 实例
         loss, mse_val = self.meanflow.loss(self.model, x_future, c_past)
         
         self.log('test/loss', loss, on_step=False, on_epoch=True)
@@ -218,9 +210,9 @@ class VideoLightningModule(pl.LightningModule):
 
 
 def main():
+    # --- 整个 main 函数保持不变 ---
     parser = argparse.ArgumentParser(description="PyTorch Lightning Video Prediction Training")
     
-    # 1. 命令行参数
     parser.add_argument('--config', type=str, default="config.yaml", help="Path to the config.yaml file")
     parser.add_argument('--log_dir', type=str, default="./logs", help="Directory to save logs and checkpoints")
     parser.add_argument('--batch_size', type=int, default=None, help="Batch size (overrides config if set)")
@@ -230,25 +222,20 @@ def main():
 
     args = parser.parse_args()
 
-    # 2. 加载 YAML 配置
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
-    # 3. 使用命令行参数覆盖配置
     if args.batch_size:
         config['training']['batch_size'] = args.batch_size
     
-    # 设置随机种子
     pl.seed_everything(42, workers=True)
 
-    # 4. 初始化 DataModule
     datamodule = VideoDataModule(
         data_config=config['data'],
         batch_size=config['training']['batch_size'],
         num_workers=config['data']['num_workers']
     )
 
-    # 5. 初始化 LightningModule
     model = VideoLightningModule(
         model_config=config['model'],
         meanflow_config=config['meanflow'],
@@ -258,24 +245,21 @@ def main():
         logging_config=config['logging']
     )
 
-    # 6. 初始化 Logger (Wandb)
     wandb_logger = WandbLogger(
         project=config['logging']['project_name'],
         save_dir=args.log_dir,
-        name=os.path.basename(args.log_dir) # 实验名称
+        name=os.path.basename(args.log_dir)
     )
     wandb_logger.watch(model, log="all", log_freq=500)
 
-    # 7. 初始化 Checkpoint Callback
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(args.log_dir, "checkpoints"),
         filename="step_{step:06d}-loss_{train/loss:.4f}",
         every_n_train_steps=config['logging']['save_step_frequency'],
-        save_top_k=-1, # 保存所有检查点
+        save_top_k=-1,
         auto_insert_metric_name=False
     )
 
-    # 8. 初始化 Trainer
     trainer = pl.Trainer(
         logger=wandb_logger,
         callbacks=[checkpoint_callback],
@@ -287,15 +271,13 @@ def main():
         gradient_clip_val=config['training']['gradient_clip_val']
     )
 
-    # 9. 运行
     if args.mode == 'train':
         print(f"--- Starting Training ---")
         print(f"Config: {config}")
         print(f"Log dir: {args.log_dir}")
-        # --- 🔴 2. 修改这里的 trainer.fit() 调用 ---
         if args.ckpt_path:
             print(f"--- 正在从 checkpoint 延续训练: {args.ckpt_path} ---")
-            trainer.fit(model, datamodule, ckpt_path=args.ckpt_path) # <-- 将 ckpt_path 传进去
+            trainer.fit(model, datamodule, ckpt_path=args.ckpt_path)
         else:
             print(f"--- 从头开始训练 ---")
             trainer.fit(model, datamodule)
