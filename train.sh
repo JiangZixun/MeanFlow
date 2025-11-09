@@ -12,12 +12,12 @@ echo "Starting training Meanflow ..."
 #     --mode train \
 #     --gpus 1
 
-/root/anaconda3/envs/prediff/bin/python train_UNet_Unconditional.py \
-    --config configs/UNet_Unconditional_server.yaml \
-    --log_dir logs/UNet_Unconditional_1e-3_flowratio_0.75 \
+/home/jzx/anaconda3/envs/torchcfm/bin/python train_UNet_Unconditional.py \
+    --config configs/UNet_Unconditional.yaml \
+    --log_dir logs/UNet_Unconditional_1e-4_flowratio_1.0 \
     --batch_size 8 \
     --mode train \
-    --gpus 1 \
-    --ckpt_path logs/UNet_1e-3_flowratio_1.0/checkpoints/step_255000-loss_0.3062.ckpt
+    --gpus 1 
+    # --ckpt_path logs/UNet_1e-3_flowratio_1.0/checkpoints/step_255000-loss_0.3062.ckpt
 
 echo "Training finished."

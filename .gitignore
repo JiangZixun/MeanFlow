@@ -167,3 +167,4 @@ images/
 cifar/
 *.txt
 logs/
+*/.sh
