@@ -8,6 +8,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from transformers import get_linear_schedule_with_warmup
+import matplotlib
+matplotlib.use('Agg')
 
 # 导入你项目中的模块
 from dataset_btchw import Xiaoshan_6steps_30min_Dataset, Xiaoshan_6steps_30min_Test_Dataset

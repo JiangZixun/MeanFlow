@@ -1,5 +1,5 @@
-# cd /mnt/data1/MeanFlow/ 
-cd /opt/data/private/MeanFlow/ 
+cd /mnt/data1/MeanFlow/ 
+# cd /opt/data/private/MeanFlow/ 
 
 echo "Starting training Meanflow ..."
 
@@ -17,6 +17,7 @@ echo "Starting training Meanflow ..."
     --log_dir logs/UNet_Unconditional_1e-4_flowratio_1.0 \
     --batch_size 8 \
     --mode train \
+    --ckpt_path logs/UNet_Unconditional_1e-4_flowratio_1.0/checkpoints/step_135000-loss_0.1081.ckpt \
     --gpus 1 
     # --ckpt_path logs/UNet_1e-3_flowratio_1.0/checkpoints/step_255000-loss_0.3062.ckpt
 
