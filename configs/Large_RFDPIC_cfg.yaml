@@ -1,0 +1,198 @@
+dp_model:
+
+  LightweightUNet:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+
+  LightweightUNetDual:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+
+  LightweightUNetDual_Rotation:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+    full_H: 256
+    full_W: 256
+  
+  LightweightUNetDual_Rotation_Grad:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+    full_H: 256
+    full_W: 256
+
+  LightweightUNetDual_Rotation_Grad_Dyn:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+    full_H: 256
+    full_W: 256
+    dyn_ch_list: [32, 16, 16]
+
+
+  LightweightUNetTri_Rotation_Grad:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+    full_H: 256
+    full_W: 256
+
+  Irradiance_EvolutionNet:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+    full_H: 256
+    full_W: 256
+    vis_indices: [0, 1]
+
+  EarthformerUNet:
+    # https://github.com/amazon-science/earth-forecasting-transformer/blob/main/scripts/cuboid_transformer/sevir/cfg_sevir.yaml
+    input_shape: [6, 256, 256, 8]
+    target_shape: [6, 256, 256, 2]
+    base_units: 128
+    block_units: null
+    scale_alpha: 1.0
+
+    enc_depth: [1, 1]
+    dec_depth: [1, 1]
+    enc_use_inter_ffn: true
+    dec_use_inter_ffn: true
+    dec_hierarchical_pos_embed: false
+
+    downsample: 2
+    downsample_type: "patch_merge"
+    upsample_type: "upsample"
+
+    num_global_vectors: 8
+    use_dec_self_global: false
+    dec_self_update_global: true
+    use_dec_cross_global: false
+    use_global_vector_ffn: false
+    use_global_self_attn: true
+    separate_global_qkv: true
+    global_dim_ratio: 1
+
+    self_pattern: "axial"
+    cross_self_pattern: "axial"
+    cross_pattern: "cross_1x1"
+    dec_cross_last_n_frames: null
+
+    attn_drop: 0.1
+    proj_drop: 0.1
+    ffn_drop: 0.1
+    num_heads: 4
+
+    ffn_activation: "gelu"
+    gated_ffn: false
+    norm_layer: "layer_norm"
+    padding_type: "zeros"
+    pos_embed_type: "t+h+w"
+    use_relative_pos: true
+    self_attn_use_final_proj: true
+    dec_use_first_self_attn: false
+
+    z_init_method: "zeros"
+    checkpoint_level: 0
+
+    initial_downsample_type: "stack_conv"
+    initial_downsample_activation: "leaky"
+    initial_downsample_stack_conv_num_layers: 3
+    initial_downsample_stack_conv_dim_list: [16, 64, 128]
+    initial_downsample_stack_conv_downscale_list: [3, 2, 2]
+    initial_downsample_stack_conv_num_conv_list: [2, 2, 2]
+
+    attn_linear_init_mode: "0"
+    ffn_linear_init_mode: "0"
+    conv_init_mode: "0"
+    down_up_linear_init_mode: "0"
+    norm_init_mode: "0"
+
+  InceptionUNet:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 32
+    incep_ker: [3,5,7,11]
+    groups: 8
+  
+  LightweightInceptionUNet:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 16
+    incep_ker: [3,5,7]
+    groups: 4
+
+  SimVP:
+    shape_in: [6, 8, 256, 256]
+    hid_S: 64
+    hid_T: 256
+    N_S: 4
+    N_T: 8
+    incep_ker: [3, 5, 7, 11]
+    groups: 8
+
+  SwinUNet:
+    img_size: 256
+    patch_size: 4
+    in_chans: 48
+    num_classes: 96
+    embed_dim: 192
+    depths: [2, 2, 18, 2]
+    num_heads: [6, 12, 24, 48]
+    window_size: 8
+    mlp_ratio: 4.0
+    qkv_bias: true
+    qk_scale: null
+    drop_rate: 0.0
+    attn_drop_rate: 0.0
+    drop_path_rate: 0.1
+    ape: true
+    patch_norm: true
+    use_checkpoint: false
+    final_upsample: "expand_first"
+    frame_channels: 8
+    vel_mode: true
+
+  GradLightweightUNet:
+    frame_channels: 8
+    in_frames: 6
+    out_frames: 6
+    base_channels: 64
+    vel_proj: true
+
+rf_model:
+
+  SpatioTemporalRefinementNet:
+    channels: 8
+    hidden_dim: 32
+
+  LightweightRefinementNet:
+    channels: 8
+  
+  WarpSharpen:
+    channles: 8
+    base_ch: 32
+    num_blocks: 5
+    res_scale: 0.1
+
+  WarpSharpen_VAE:
+    in_channels: 8
+    out_channels: 8
+    down_block_types: ['DownEncoderBlock2D', 'DownEncoderBlock2D', 'DownEncoderBlock2D', 'DownEncoderBlock2D', 'DownEncoderBlock2D']
+    block_out_channels: [128, 128, 256, 256, 512]  # downsample `len(block_out_channels) - 1` times | last 2 channels must be equal
+    act_fn: 'silu'
+    latent_channels: 16
+    up_block_types: ['UpDecoderBlock2D', 'UpDecoderBlock2D', 'UpDecoderBlock2D', 'UpDecoderBlock2D', 'UpDecoderBlock2D']
+    norm_num_groups: 32
+    layers_per_block: 2

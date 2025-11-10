@@ -168,3 +168,4 @@ cifar/
 *.txt
 logs/
 */.sh
+pretrained_models/

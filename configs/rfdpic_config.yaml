@@ -1,0 +1,84 @@
+dataset:
+  dataset_name: 'Himawari8'
+  train_data_path: '/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day.h5'
+  train_json_path: '/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day_all.json'
+  train_dataset_prefix: '2022'
+  train_ratio: 0.9
+  train_random_flip: 0.5
+  test_data_path: '/mnt/data1/Dataset/Himawari8/test/full_2023_xiaoshan_6steps_30min_Data_day.h5'
+  test_json_path: '/mnt/data1/Dataset/Himawari8/test/full_2023_xiaoshan_6steps_30min_Data_day_all.json'
+  test_dataset_prefix: '2023'
+  num_workers: 8
+  pin_memory: false
+  rescaled: false
+
+optim:
+  total_batch_size: 64
+  micro_batch_size: 4
+  seed: 0
+  float32_matmul_precision: "high"
+  method: "adamw"
+  lr: 1.0e-3
+  wd: 1.0e-5
+  betas: [0.9, 0.999]
+  gradient_clip_val: 1.0
+  max_epochs: 100
+  # scheduler
+  warmup_percentage: 0.1
+  lr_scheduler_mode: "cosine"
+  min_lr_ratio: 1.0e-3
+  warmup_min_lr_ratio: 0.1
+  # early stopping
+  monitor: "val/total"
+  early_stop: false
+  early_stop_mode: "min"
+  early_stop_patience: 100
+  save_top_k: 3
+
+loss:
+  loss_type: "l1"
+  use_physics_loss: false
+  physics_weight: 0.0
+  # 大气动力学过程
+  lambda_horizontal_advection: 0.3
+  lambda_convergence_divergence: 0.1
+  lambda_shear_deformation: 0.2
+  lambda_vorticity_rotation: 0.2
+  # 位移场约束
+  lambda_displacement_temporal: 0.4
+  lambda_displacement_smoothness: 0.2
+  lambda_displacement_magnitude: 0.1
+
+logging:
+  logging_prefix: "Himawari8_Prediction"
+  logging_name: "RFDPIC-LightweightUNetDual_Rotation_Grad_Dyn_rescale_0.001-ATM-L-phy_0"
+  monitor_lr: true
+  monitor_device: false
+  track_grad_norm: -1
+  use_wandb: true
+  profiler: null
+
+trainer:
+  check_val_every_n_epoch: 1
+  log_step_ratio: 0.001
+  precision: 32
+  num_sanity_val_steps: 2
+
+eval:
+  train_example_data_idx_list: []
+  val_example_data_idx_list: []
+  test_example_data_idx_list: [0, 16, 32, 48, 64, 72, 96, 108, 128]
+  # test_example_data_idx_list: [514]
+
+model:
+  # Refined_Displacement_Predictor
+  dp_name: "LightweightUNetDual_Rotation_Grad_Dyn"
+  rf_name: "LightweightRefinementNet"
+  rf_dp_config_file: "configs/Large_RFDPIC_cfg.yaml"
+  dp_mode: "autoregrad"
+  rf_mode: "autoregrad"
+  use_res_scale: true
+  res_scale_init: 0.001
+  alpha: 0.
+  interpolation_mode: "bilinear"
+  padding_mode: "border"
