@@ -6,9 +6,11 @@ from matplotlib.gridspec import GridSpec
 from scipy import ndimage
 
 # 全局变量
-CHANNEL_NAME = [f'Ch{i+1}' for i in range(8)]
-CMAP = ['gray'] * 8
-label_fontsize = 12
+CHANNEL_NAME = ['albedo_03', 'albedo_05', 'tbb_07', 'tbb_11', 'tbb_13', 'tbb_14', 'tbb_15', 'tbb_16']
+CMAP = ['gray' for _ in range(len(CHANNEL_NAME))]
+# plot_CMAP = ['gray','viridis','inferno','inferno','inferno','inferno','inferno','inferno']
+plot_CMAP = ['viridis', 'viridis', 'viridis', 'viridis', 'viridis', 'viridis', 'viridis', 'viridis']
+label_fontsize = 16  # 放大标签字体
 
 def vis_himawari8_seq_btchw(
         save_dir: str,
@@ -147,3 +149,62 @@ def vis_himawari8_seq_btchw(
         save_path = os.path.join(save_dir, f"{CHANNEL_NAME[channel_idx]}.png")
         plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
         plt.close('all') # 关闭所有图像，防止内存泄漏
+
+from matplotlib.colors import TABLEAU_COLORS  # 使用Tableau默认颜色集
+
+def plot_metrics_curve(save_dir:str,
+                       name:str,
+                       data: np.ndarray):
+    """
+    绘制指标随时间变化的曲线图，分为两组：
+    1. albedo_03和albedo_05
+    2. 其他6个tbb通道
+    参数:
+        save_dir: 图片保存目录
+        name: 指标名称 (如'MSE', 'MAE')
+        data: 8x6的numpy数组，每行代表一个通道，每列代表一个时间步
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    # 时间设置（30分钟间隔）
+    time_labels = [f'{(i+1)*30}min' for i in range(6)]  # 00:00, 00:30, ..., 02:30
+    x_ticks = np.arange(6)
+    
+    # ===================== 第一张图：两个albedo通道 =====================
+    plt.figure(figsize=(10, 5))
+    albedo_indices = [0, 1]  # albedo_03和albedo_05的索引
+    for i in albedo_indices:
+        plt.plot(x_ticks, data[i], 
+                color=list(TABLEAU_COLORS.values())[i],
+                marker='o',
+                linewidth=2,
+                label=CHANNEL_NAME[i])
+    plt.title(f'{name} - Albedo Channels')
+    plt.ylabel(name)
+    plt.xticks(x_ticks, time_labels)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend(loc='upper left')
+    # 保存albedo专用图
+    albedo_path = os.path.join(save_dir, f'{name.lower()}_albedo.png')
+    plt.savefig(albedo_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # ===================== 第二张图：6个tbb通道 =====================
+    plt.figure(figsize=(12, 6))
+    tbb_indices = [2, 3, 4, 5, 6, 7]  # 其他6个tbb通道的索引
+    for i in tbb_indices:
+        plt.plot(x_ticks, data[i], 
+                color=list(TABLEAU_COLORS.values())[i],
+                marker='o',
+                linewidth=2,
+                label=CHANNEL_NAME[i])
+    plt.title(f'{name} - TBB Channels')
+    plt.ylabel(name)
+    plt.xticks(x_ticks, time_labels)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend(loc='upper left')
+    # 调整布局防止标签重叠
+    plt.tight_layout()
+    # 保存tbb专用图
+    tbb_path = os.path.join(save_dir, f'{name.lower()}_tbb.png')
+    plt.savefig(tbb_path, dpi=300, bbox_inches='tight')
+    plt.close()

@@ -176,7 +176,7 @@ class VideoLightningModule(pl.LightningModule):
                 z = self.meanflow.sample_prediction(
                     self.model, 
                     c_past_val, 
-                    sample_steps=20,
+                    sample_steps=1000, # modify
                     device=self.device
                 )
 
