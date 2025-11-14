@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from scipy import ndimage
+from matplotlib.colors import TABLEAU_COLORS  # 使用Tableau默认颜色集
 
 # 全局变量
 CHANNEL_NAME = ['albedo_03', 'albedo_05', 'tbb_07', 'tbb_11', 'tbb_13', 'tbb_14', 'tbb_15', 'tbb_16']
@@ -150,7 +151,6 @@ def vis_himawari8_seq_btchw(
         plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
         plt.close('all') # 关闭所有图像，防止内存泄漏
 
-from matplotlib.colors import TABLEAU_COLORS  # 使用Tableau默认颜色集
 
 def plot_metrics_curve(save_dir:str,
                        name:str,
@@ -208,3 +208,4 @@ def plot_metrics_curve(save_dir:str,
     tbb_path = os.path.join(save_dir, f'{name.lower()}_tbb.png')
     plt.savefig(tbb_path, dpi=300, bbox_inches='tight')
     plt.close()
+

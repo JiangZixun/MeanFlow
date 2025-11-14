@@ -17,6 +17,8 @@ from einops import rearrange
 import numpy as np
 import json
 from evaluation.fvd.torchmetrics_wrap import FrechetVideoDistance
+from evaluation.psd.psd_metric import PSDAverageMetric
+from evaluation.psd.psd_tools import plot_sample_psd, calculate_psd_error_metrics
 
 from models.MotionPredictor.RFDPIC_Dual_Rotation_dyn import RFDPIC_Dual_Rotation_Dyn
 from utils.transform import data_transform, inverse_data_transform
@@ -118,6 +120,13 @@ class VideoLightningModule(pl.LightningModule):
             for _ in range(self.num_channels)
         ])
 
+        # 🔴 新增：(回答您的指标要求 1)
+        # 像 FVD 一样，我们定义三个流式指标，它们不会爆内存
+        H_W = self.hparams.model_config['input_size'][1] # 应该是 256
+        self.test_psd_gt = PSDAverageMetric(H=H_W, W=H_W)
+        self.test_psd_pred = PSDAverageMetric(H=H_W, W=H_W)
+        self.test_psd_rfdpic = PSDAverageMetric(H=H_W, W=H_W)
+        
         # 可视化index
         self.train_example_data_idx_list = eval_config['train_example_data_idx_list']
         self.val_example_data_idx_list = eval_config['val_example_data_idx_list']
@@ -374,6 +383,12 @@ class VideoLightningModule(pl.LightningModule):
             self.test_fvd_list[c].update(real_ch_video, real=True)
             self.test_fvd_list[c].update(fake_ch_video, real=False)
 
+        # 🔴 更新 PSD 指标 (全局)
+        # 这就像 FVD.update()，它只累加总和，不保存数据，不会爆内存
+        self.test_psd_gt.update(targets_norm)
+        self.test_psd_pred.update(preds_norm)
+        self.test_psd_rfdpic.update(c_rfdpic) # (B, 6, C, H, W)
+
         # 逐通道/逐时间步指标 (在反归一化数据上)
         for c in range(self.num_channels):
             for t in range(self.num_timesteps):
@@ -401,7 +416,26 @@ class VideoLightningModule(pl.LightningModule):
                 pred_seq=pred_list, 
                 target_seq=target_list
             )
-    
+            
+            # 🔴 新增：(回答您的可视化要求 2)
+            # 调用我们简单的“一体化”绘图函数
+            try:
+                rfdpic_sample_np = c_rfdpic[0].cpu().numpy() # (T, C, H, W)
+                preds_sample_np = preds_sample.numpy()
+                targets_sample_np = targets_sample.numpy()
+                
+                # 调用一个函数，完成所有计算和绘图
+                plot_sample_psd(
+                    pred_4d=preds_sample_np,
+                    rfdpic_4d=rfdpic_sample_np,
+                    gt_4d=targets_sample_np,
+                    save_dir=save_dir
+                )
+
+            except Exception as e:
+                print(f"Failed to generate sample PSD plot for sample {data_idx}: {e}")
+        
+
     def on_test_epoch_end(self):
         # 聚合所有 GPU 上的指标
         test_d_mse = self.test_d_mse.compute()
@@ -446,6 +480,52 @@ class VideoLightningModule(pl.LightningModule):
             self.log('test/fvd_epoch_mean', mean_fvd, prog_bar=True, on_step=False, on_epoch=True, sync_dist=True)
         else:
             print("\n--- Warning: No FVD values were successfully computed for averaging. ---\n")
+
+        # 🔴 新增：计算、记录和重置 PSD 指标
+        # .compute() 会自动 DDP 同步，返回全局平均曲线
+        k_axis_gt, psd_gt = self.test_psd_gt.compute()
+        _, psd_pred = self.test_psd_pred.compute()
+        _, psd_rfdpic = self.test_psd_rfdpic.compute()
+        
+        # 转换为 NumPy 用于指标计算
+        k_axis_np = k_axis_gt.cpu().numpy()
+        psd_gt_np = psd_gt.cpu().numpy()
+        psd_pred_np = psd_pred.cpu().numpy()
+        psd_rfdpic_np = psd_rfdpic.cpu().numpy()
+
+        # 重置 (像 FVD.reset())
+        self.test_psd_gt.reset()
+        self.test_psd_pred.reset()
+        self.test_psd_rfdpic.reset()
+
+        # (仅在 rank 0 上保存和绘图)
+        if self.trainer.is_global_zero:
+            
+            # 🔴 新增：调用 PSD 指标计算 (Part 2)
+            try:
+                # 按照您的要求设置百分比
+                splits_list = [0.50, 0.75, 0.90, 0.95] # 对应 top 50%, 25%, 10%, 5%
+                
+                # 计算 MeanFlow vs GT
+                psd_metrics_pred = calculate_psd_error_metrics(
+                    psd_gt_np, psd_pred_np, k_axis_np, splits_list
+                )
+                print("\n--- PSD Metrics (MeanFlow Pred vs. GT) ---")
+                for key, value in psd_metrics_pred.items():
+                    self.log(f'test/psd_pred_{key}', value, prog_bar=False, on_step=False, on_epoch=True, sync_dist=False)
+                    print(f"  {key}: {value:.4f}")
+                
+                # 计算 RFDPIC vs GT (作为对比)
+                psd_metrics_rfdpic = calculate_psd_error_metrics(
+                    psd_gt_np, psd_rfdpic_np, k_axis_np, splits_list
+                )
+                print("\n--- PSD Metrics (RFDPIC vs. GT) ---")
+                for key, value in psd_metrics_rfdpic.items():
+                    self.log(f'test/psd_rfdpic_{key}', value, prog_bar=False, on_step=False, on_epoch=True, sync_dist=False)
+                    print(f"  {key}: {value:.4f}")
+
+            except Exception as e:
+                print(f"Failed to compute PSD metrics: {e}")
 
         # 处理逐通道指标 (仅在 rank 0 上执行)
         if self.trainer.is_global_zero:

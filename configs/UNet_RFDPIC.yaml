@@ -50,3 +50,4 @@ eval:
   val_example_data_idx_list: []
   # test_example_data_idx_list: [514]
   test_example_data_idx_list: []
+  # test_example_data_idx_list: [0,16,32,48,64,80]  # 测试时可视化的样本 ID 列表
