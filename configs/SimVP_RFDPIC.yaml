@@ -1,0 +1,59 @@
+# config.yaml
+data:
+  dataset_name: "Himawari8"
+  train_data_path: "/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day.h5"
+  train_json_path: "/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day_all.json"
+  train_dataset_prefix: '2022'
+  train_ratio: 0.9
+  train_random_flip: 0.5
+  test_data_path: "/mnt/data1/Dataset/Himawari8/test/full_2023_xiaoshan_6steps_30min_Data_day.h5"
+  test_json_path: "/mnt/data1/Dataset/Himawari8/test/full_2023_xiaoshan_6steps_30min_Data_day_all.json"
+  test_dataset_prefix: '2023'
+  num_workers: 4
+  pin_memory: false
+  rescaled: false
+
+model:
+  # 对应 UNet 的参数
+  input_size: [6, 256, 256]  # (T, H, W)
+  in_channels_c: 16          # C_x + C_y (8+8)
+  out_channels_c: 8          # C_x
+  time_emb_dim: 256          # UNet 中 t 和 r 嵌入的维度
+  hid_S: 64
+  hid_T: 256
+  N_S: 4
+  N_T: 8
+  incep_ker: [3, 5, 7, 11]
+  groups: 8
+  
+meanflow:
+  # 对应 MeanFlow 的参数
+  flow_ratio: 1.0            # 1.0 = 仅标准流匹配, 0.5 = 混合 JVP 损失
+  time_dist: ['lognorm', -0.4, 1.0]
+  cfg_ratio: 0.50
+  cfg_scale: 2.0
+  cfg_uncond: 'v'
+
+optimizer:
+  lr: 1.0e-4
+  weight_decay: 0.0
+
+scheduler:
+  num_warmup_steps: 5000
+
+training:
+  n_steps: 1000000
+  gradient_clip_val: 1.0
+  # batch_size 将从命令行传入
+
+logging:
+  project_name: "MeanFlow_Himwari8"
+  log_every_n_steps: 100       # 终端和 Wandb 的 Loss 打印频率
+  save_step_frequency: 5000    # Checkpoint 和 可视化采样 频率
+
+eval:
+  train_example_data_idx_list: []
+  val_example_data_idx_list: []
+  # test_example_data_idx_list: [514]
+  test_example_data_idx_list: []
+  # test_example_data_idx_list: [0,16,32,48,64,80]  # 测试时可视化的样本 ID 列表
