@@ -43,7 +43,7 @@ training:
 logging:
   project_name: "MeanFlow_Himwari8"
   log_every_n_steps: 100       # 终端和 Wandb 的 Loss 打印频率
-  save_step_frequency: 10000    # Checkpoint 和 可视化采样 频率
+  save_step_frequency: 20000    # Checkpoint 和 可视化采样 频率
 
 eval:
   train_example_data_idx_list: []
