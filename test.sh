@@ -3,8 +3,8 @@ cd /mnt/data1/MeanFlow/
 
 echo "Starting testing Meanflow ..."
 
-/home/jzx/anaconda3/envs/torchcfm/bin/python train_JiT_RFDPIC.py \
-    --config configs/JiT_RFDPIC.yaml \
+/home/jzx/anaconda3/envs/torchcfm/bin/python train_JiU_RFDPIC.py \
+    --config configs/JiU_RFDPIC.yaml \
     --rfdpic_config configs/rfdpic_config.yaml \
     --rfdpic_ckpt pretrained_models/pretrained_RFDPIC_Dual_Rotation_Dyn.pt \
     --log_dir logs/JiT_RFDPIC_1e-4_flowratio_1.0 \
@@ -12,5 +12,5 @@ echo "Starting testing Meanflow ..."
     --batch_size 8 \
     --mode test \
     --gpus 1 \
-    --ckpt_path logs/JiT_RFDPIC_1e-4_flowratio_1.0/checkpoints/step_1000000-loss_0.1542.ckpt
+    --ckpt_path logs/JiU_RFDPIC_1e-4_flowratio_1.0/checkpoints/step_1000000-loss_0.0785.ckpt
     # --use_wandb

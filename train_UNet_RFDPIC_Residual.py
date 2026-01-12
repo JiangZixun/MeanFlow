@@ -223,6 +223,18 @@ class VideoLightningModule(pl.LightningModule):
         print(f"{'='*10} RFDPIC model loaded and frozen. {'='*10}")
         return model
 
+    def get_final_prediction(self, c_rfdpic, c_past, sample_steps):
+        # 1. 采样得到残差
+        residual_pred = self.meanflow.sample_prediction(
+            self.model, 
+            (c_rfdpic, c_past), 
+            sample_steps=sample_steps,
+            device=self.device
+        )
+        # 2. 🔴 加回初始分布得到最终预测结果
+        final_pred = c_rfdpic + residual_pred
+        return final_pred
+
     # 🔴 新增：反归一化辅助函数
     def denormalize(self, data: torch.Tensor, mode: str=''):
         if mode == 'train' or mode == 'val':
@@ -260,7 +272,10 @@ class VideoLightningModule(pl.LightningModule):
         # --- 🔴 1. 修改：将 c 作为元组 (c_start, c_cond) 传递 ---
         # c_start = c_rfpic
         # c_cond = c_past
-        loss, mse_val = self.meanflow.loss(self.model, x_future, c=(c_rfdpic, c_past))
+        target_residual = x_future - c_rfdpic
+    
+        # 这里的 model 预测的是残差，c 依然作为条件输入
+        loss, mse_val = self.meanflow.loss(self.model, target_residual, c=(c_rfdpic, c_past))
         
         self.log('train/loss', loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('train/mse_loss', mse_val, on_step=True, on_epoch=False)
@@ -292,23 +307,16 @@ class VideoLightningModule(pl.LightningModule):
                 c_rfdpic_norm_val, _, _, _, _ = self.rfdpic_model(c_past_norm_val)
                 c_rfdpic_val = inverse_data_transform(c_rfdpic_norm_val, rescaled=self.rfdpic_rescaled)
                 
-                # c_start = c_rfdpic_val
-                # c_cond = c_past_val
-                c_tuple_val = (c_rfdpic_val, c_past_val)
-
-                z = self.meanflow.sample_prediction(
-                    self.model, 
-                    c_tuple_val, # <-- 传入元组
-                    sample_steps=10,
-                    device=self.device
-                )
+                z = self.get_final_prediction(c_rfdpic=c_rfdpic_val, 
+                                              c_past=c_past_val, 
+                                              sample_steps=self.sample_steps)
 
             # ... (可视化和清理不变) ...
             c_past_sample = c_past_val[0].cpu()
             z_sample = z[0].cpu()
             x_future_sample = x_future_val[0].cpu()
             c_rfdpic_sample = c_rfdpic_val[0].cpu()
-            del c_past_val, x_future_val, z, val_batch, c_rfdpic_val, c_tuple_val
+            del c_past_val, x_future_val, z, val_batch, c_rfdpic_val
             torch.cuda.empty_cache()
             context_list = [c_past_sample[t] for t in range(c_past_sample.shape[0])]
             pred_list = [z_sample[t] for t in range(z_sample.shape[0])]
@@ -340,15 +348,7 @@ class VideoLightningModule(pl.LightningModule):
         rfdpic_denorm = self.denormalize(data=c_rfdpic, mode='test')
 
         # --- 2. 获取 MeanFlow 预测 (归一化) ---
-        c_tuple = (c_rfdpic, c_past)
-        
-        # preds_norm 是 (B, 6, C, H, W) 并且是归一化的 (0-1 范围)
-        preds_norm = self.meanflow.sample_prediction(
-            self.model, 
-            c_tuple,
-            sample_steps=self.sample_steps, # 注意：采样步数应与验证时一致
-            device=self.device
-        )
+        preds_norm = self.get_final_prediction(c_rfdpic, c_past, self.sample_steps)
         targets_norm = x_future
         
         # --- 3. 反归一化用于计算 MSE/MAE/RMSE ---
