@@ -140,7 +140,7 @@ class VideoLightningModule(pl.LightningModule):
         train_global_min_values = torch.tensor(train_global_stats['Global Min'], 
                                                    dtype=torch.float32).reshape(1, 1, 8, 1, 1)
         train_global_range = train_global_max_values - train_global_min_values
-        self.register_buffer('train_global_min_values', train_global_max_values)
+        self.register_buffer('train_global_max_values', train_global_max_values)
         self.register_buffer('train_global_min_values', train_global_min_values)
         self.register_buffer('train_global_range', train_global_range)
         
@@ -151,7 +151,7 @@ class VideoLightningModule(pl.LightningModule):
         test_global_min_values = torch.tensor(test_global_stats['Global Min'], 
                                                    dtype=torch.float32).reshape(1, 1, 8, 1, 1)
         test_global_range = test_global_max_values - test_global_min_values
-        self.register_buffer('test_global_min_values', test_global_max_values)
+        self.register_buffer('test_global_max_values', test_global_max_values)
         self.register_buffer('test_global_min_values', test_global_min_values)
         self.register_buffer('test_global_range', test_global_range)
         

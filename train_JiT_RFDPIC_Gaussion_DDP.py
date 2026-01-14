@@ -1,6 +1,3 @@
-# train_lightning.py (修改版)
-
-# ... (所有 import 保持不变, 包括 RFDPIC 的) ...
 import os
 import argparse
 import yaml
@@ -23,8 +20,8 @@ from evaluation.psd.psd_tools import plot_sample_psd, calculate_psd_error_metric
 from models.MotionPredictor.RFDPIC_Dual_Rotation_dyn import RFDPIC_Dual_Rotation_Dyn
 from utils.transform import data_transform, inverse_data_transform
 from dataset_btchw import Himawari8LightningDataModule
-from models.UNet import UNet
-from videoMeanflow_RFDPIC_JiU import MeanFlow 
+from models.ViT import JiT
+from videoMeanflow_RFDPIC_JiT_Gaussion import MeanFlow 
 from visualize import vis_himawari8_seq_btchw, plot_metrics_curve
 
 
@@ -76,11 +73,17 @@ class VideoLightningModule(pl.LightningModule):
         # 3. 实例化 U-Net
         # 🔴 这里的 model_config['in_channels_c'] 必须是 6 (由 main() 传入)
         print(f"Initializing UNet with condition input_t (in_channels_c): {model_config['in_channels_c']}")
-        self.model = UNet(
-            input_size=model_config['input_size'],
-            in_channels_c=model_config['in_channels_c'], # 应该是 6
-            out_channels_c=model_config['out_channels_c'],
-            time_emb_dim=model_config['time_emb_dim']
+        self.model = JiT(
+            input_size=tuple(model_config['input_size']),
+            in_channels_c=model_config['in_channels_c'],  # 条件输入通道数 (6)
+            out_channels_c=model_config['out_channels_c'], # 预测输出通道数 (8)
+            time_emb_dim=model_config['time_emb_dim'],
+            patch_size=model_config['patch_size'],
+            hidden_size=model_config['hidden_size'],
+            depth=model_config['depth'],
+            num_heads=model_config['num_heads'],
+            mlp_ratio=model_config['mlp_ratio'],
+            bottleneck_dim=model_config['bottleneck_dim'],
         )
         
         self.val_loader_iter = None
@@ -258,9 +261,8 @@ class VideoLightningModule(pl.LightningModule):
             c_rfdpic = c_rfdpic.detach() # (B, 6, C, H, W)
 
         # --- 🔴 1. 修改：将 c 作为元组 (c_start, c_cond) 传递 ---
-        # c_start = c_rfpic
-        # c_cond = c_past
-        loss, mse_val = self.meanflow.loss(self.model, x_future, c=(c_rfdpic, c_past))
+        c_cond_cat = torch.cat([c_past, c_rfdpic], dim=2)
+        loss, mse_val = self.meanflow.loss(self.model, x_future, c=(c_rfdpic, c_cond_cat))
         
         self.log('train/loss', loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('train/mse_loss', mse_val, on_step=True, on_epoch=False)
@@ -271,9 +273,12 @@ class VideoLightningModule(pl.LightningModule):
     def on_train_batch_end(self, outputs, batch, batch_idx):
         save_freq = self.hparams.logging_config['save_step_frequency']
         
-        if self.trainer.is_global_zero and self.global_step > 0 and self.global_step % save_freq == 0:
-            self.model.eval()
+        if self.trainer.is_global_zero and \
+            self.trainer.is_global_zero and \
+            self.global_step > 0 and \
+            self.global_step % save_freq == 0:
             
+            self.model.eval()
             if self.val_loader_iter is None:
                 self.val_loader_iter = iter(self.trainer.datamodule.val_dataloader())
             try:
@@ -292,14 +297,13 @@ class VideoLightningModule(pl.LightningModule):
                 c_rfdpic_norm_val, _, _, _, _ = self.rfdpic_model(c_past_norm_val)
                 c_rfdpic_val = inverse_data_transform(c_rfdpic_norm_val, rescaled=self.rfdpic_rescaled)
                 
-                # c_start = c_rfdpic_val
-                # c_cond = c_past_val
-                c_tuple_val = (c_rfdpic_val, c_past_val)
+                c_cond_cat_val = torch.cat([c_past_val, c_rfdpic_val], dim=2) 
+                c_tuple_val = (c_rfdpic_val, c_cond_cat_val) # <-- 传入 (c_start, c_cond_cat)
 
                 z = self.meanflow.sample_prediction(
                     self.model, 
                     c_tuple_val, # <-- 传入元组
-                    sample_steps=10,
+                    sample_steps=self.sample_steps,
                     device=self.device
                 )
 
@@ -339,7 +343,9 @@ class VideoLightningModule(pl.LightningModule):
         c_rfdpic = c_rfdpic.detach()
 
         # --- 2. 获取 MeanFlow 预测 (归一化) ---
-        c_tuple = (c_rfdpic, c_past)
+        c_cond_cat = torch.cat([c_past, c_rfdpic], dim=2) 
+        c_cond_cat = c_cond_cat.detach()
+        c_tuple = (c_rfdpic, c_cond_cat) # <-- 传入 (c_start, c_cond_cat)
         
         # preds_norm 是 (B, 6, C, H, W) 并且是归一化的 (0-1 范围)
         preds_norm = self.meanflow.sample_prediction(
@@ -642,13 +648,16 @@ def main():
         auto_insert_metric_name=False
     )
     
+    # main() 函数中
     trainer = pl.Trainer(
-        logger=logger_instance, # <-- 现在 logger_instance 始终是一个配置好的 logger
+        logger=logger_instance,
         callbacks=[checkpoint_callback],
         max_steps=config['training']['n_steps'],
         devices=args.gpus,
         accelerator="gpu",
+        strategy="ddp_find_unused_parameters_true", # 适配 DDP，尤其是有冻结层时
         precision=32,
+        sync_batchnorm=True, # 推荐：多卡同步 BatchNorm（如果有的话）
         log_every_n_steps=config['logging']['log_every_n_steps'],
         gradient_clip_val=config['training']['gradient_clip_val']
     )

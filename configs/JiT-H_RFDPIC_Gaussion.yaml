@@ -1,0 +1,60 @@
+# config.yaml
+data:
+  dataset_name: "Himawari8"
+  train_data_path: "/opt/data/private/Dataset/Himawari/train/xiaoshan_6steps_30min_Data_day.h5"
+  train_json_path: "/opt/data/private/Dataset/Himawari/train/xiaoshan_6steps_30min_Data_day_all.json"
+  train_dataset_prefix: '2022'
+  train_ratio: 0.9
+  train_random_flip: 0.5
+  test_data_path: "/opt/data/private/Dataset/Himawari/test/full_2023_xiaoshan_6steps_30min_Data_day.h5"
+  test_json_path: "/opt/data/private/Dataset/Himawari/test/full_2023_xiaoshan_6steps_30min_Data_day_all.json"
+  test_dataset_prefix: '2023'
+  num_workers: 8
+  pin_memory: true
+  rescaled: false
+
+model:
+  # 对应 Transformer-L 的参数
+  input_size: [6, 256, 256]    # (T, H, W) 保持不变
+  in_channels_c: 24            # Noise C_x + C_y (8+8) 保持不变
+  out_channels_c: 8            # C_x 保持不变
+  time_emb_dim: null           # 保持不变
+  patch_size: 16               # 根据图中 patch size 为 image_size / 16 计算得出
+  
+  # --- JiT-L 特有配置 ---
+  hidden_size: 1280            # 对应图中 JiT-L 的 hidden dim
+  depth: 32                    # 对应图中 JiT-L 的 depth
+  num_heads: 16                # 对应图中 JiT-L 的 heads
+  mlp_ratio: 4.0               # 通常 Transformer 结构默认为 4.0
+  bottleneck_dim: 256          # 对应图中 bottleneck 栏目的 128 (B/L)
+
+meanflow:
+  # 对应 MeanFlow 的参数
+  flow_ratio: 1.0            # 1.0 = 仅标准流匹配, 0.5 = 混合 JVP 损失
+  time_dist: ['lognorm', -0.4, 1.0]
+  cfg_ratio: 0.50
+  cfg_scale: 2.0
+  cfg_uncond: 'v'
+
+optimizer:
+  lr: 1.0e-4
+  weight_decay: 0.0
+
+scheduler:
+  num_warmup_steps: 5000
+
+training:
+  n_steps: 500000
+  gradient_clip_val: 1.0
+  # batch_size 将从命令行传入
+
+logging:
+  project_name: "MeanFlow_Himwari8"
+  log_every_n_steps: 100       # 终端和 Wandb 的 Loss 打印频率
+  save_step_frequency: 10000    # Checkpoint 和 可视化采样 频率
+
+eval:
+  train_example_data_idx_list: []
+  val_example_data_idx_list: []
+  test_example_data_idx_list: []
+  # test_example_data_idx_list: [0,16,32,48,64,80]  # 测试时可视化的样本 ID 列表
