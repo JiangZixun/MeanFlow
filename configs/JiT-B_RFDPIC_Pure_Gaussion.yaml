@@ -16,7 +16,7 @@ data:
 model:
   # 对应 UNet 的参数
   input_size: [6, 256, 256]  # (T, H, W)
-  in_channels_c: 16          # C_x + C_y (8+8)
+  in_channels_c: 16          # N + C_y (8+8)
   out_channels_c: 8          # C_x
   time_emb_dim: null
   patch_size: 16
@@ -42,14 +42,14 @@ scheduler:
   num_warmup_steps: 5000
 
 training:
-  n_steps: 1000000
+  n_steps: 500000
   gradient_clip_val: 1.0
   # batch_size 将从命令行传入
 
 logging:
   project_name: "MeanFlow_Himwari8"
   log_every_n_steps: 100       # 终端和 Wandb 的 Loss 打印频率
-  save_step_frequency: 10000    # Checkpoint 和 可视化采样 频率
+  save_step_frequency: 50000   # Checkpoint 和 可视化采样 频率
 
 eval:
   train_example_data_idx_list: []
