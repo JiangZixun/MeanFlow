@@ -170,3 +170,5 @@ logs/
 */.sh
 pretrained_models/
 pretrained_metrics/
+util_for_paper/
+plot/
