@@ -40,6 +40,7 @@ echo "Starting training Meanflow ..."
     --rfdpic_config configs/rfdpic_config.yaml \
     --rfdpic_ckpt pretrained_models/pretrained_RFDPIC_Dual_Rotation_Dyn.pt \
     --log_dir logs/JiT-B \
+    --log_dir logs/JiT-B \
     --sample_steps 10 \
     --batch_size 2 \
     --mode test \

@@ -1,20 +1,19 @@
 # config.yaml
 data:
   dataset_name: "Himawari8"
-  train_data_path: "/opt/data/private/Dataset/Himawari/train/xiaoshan_6steps_30min_Data_day.h5"
-  train_json_path: "/opt/data/private/Dataset/Himawari/train/xiaoshan_6steps_30min_Data_day_all.json"
-  train_dataset_prefix: '2022'
+  train_data_path: "/opt/data/share/jzx/zone1/p1/Dataset/GOES/GOES_Day/GOES_Day.h5"
+  train_json_path: "/opt/data/share/jzx/zone1/p1/Dataset/GOES/GOES_Day/GOES_Day_all.json"
+  train_dataset_prefix: '2020'
   train_ratio: 0.9
   train_random_flip: 0.5
-  test_data_path: "/opt/data/private/Dataset/Himawari/test/full_2023_xiaoshan_6steps_30min_Data_day.h5"
-  test_json_path: "/opt/data/private/Dataset/Himawari/test/full_2023_xiaoshan_6steps_30min_Data_day_all.json"
-  test_dataset_prefix: '2023'
+  test_data_path: "/opt/data/share/jzx/zone1/p1/Dataset/GOES/GOES_Day_test/GOES_Day_test.h5"
+  test_json_path: "/opt/data/share/jzx/zone1/p1/Dataset/GOES/GOES_Day/GOES_Day_all.json"
+  test_dataset_prefix: '2021'
   num_workers: 8
-  pin_memory: true
+  pin_memory: false
   rescaled: false
 
 model:
-  # 对应 UNet 的参数
   input_size: [6, 256, 256]  # (T, H, W)
   in_channels_c: 16          # C_x + C_y (8+8)
   out_channels_c: 8          # C_x
@@ -47,9 +46,9 @@ training:
   # batch_size 将从命令行传入
 
 logging:
-  project_name: "MeanFlow_Himwari8"
+  project_name: "MeanFlow_GOES"
   log_every_n_steps: 100       # 终端和 Wandb 的 Loss 打印频率
-  save_step_frequency: 10000    # Checkpoint 和 可视化采样 频率
+  save_step_frequency: 100000    # Checkpoint 和 可视化采样 频率
 
 eval:
   train_example_data_idx_list: []
