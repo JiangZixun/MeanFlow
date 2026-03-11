@@ -1,0 +1,64 @@
+# config.yaml
+data:
+  dataset_name: "Himawari8"
+  train_data_path: "/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day.h5"
+  train_json_path: "/mnt/data1/Dataset/Himawari8/train/xiaoshan_6steps_30min_Data_day_all.json"
+  train_dataset_prefix: '2022'
+  train_ratio: 0.9
+  train_random_flip: 0.5
+  test_data_path: "/mnt/data1/Dataset/Himawari8/test/full_2023_xiaoshan_6steps_30min_Data_day.h5"
+  test_json_path: "/mnt/data1/Dataset/Himawari8/test/full_2023_xiaoshan_6steps_30min_Data_day_all.json"
+  test_dataset_prefix: '2023'
+  num_workers: 4
+  pin_memory: false
+  rescaled: false
+
+model:
+  input_size: [6, 256, 256]  # (T, H, W)
+  in_channels_c: 16          # C_x + C_y (8+8)
+  out_channels_c: 8          # C_x
+  time_emb_dim: null
+  patch_size: 16
+  hidden_size: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  bottleneck_dim: 256
+
+meanflow:
+  flow_ratio: 1.0
+  time_dist: ['lognorm', -0.4, 1.0]
+  cfg_ratio: 0.50
+  cfg_scale: 2.0
+  cfg_uncond: 'v'
+
+  # LCS ablation:
+  # off | condition_only | loss_only | both
+  lcs_enabled: true
+  lcs_mode: both
+  lcs_alpha: 0.35
+  lcs_ridge_quantile: 0.90
+  lcs_lambda_grad: 0.05
+  lcs_ridge_boost: 2.0
+
+optimizer:
+  lr: 1.0e-4
+  weight_decay: 0.0
+
+scheduler:
+  num_warmup_steps: 5000
+
+training:
+  n_steps: 100000
+  gradient_clip_val: 1.0
+  # batch_size passed from CLI
+
+logging:
+  project_name: "MeanFlow_Himwari8_LCS"
+  log_every_n_steps: 100
+  save_step_frequency: 10000
+
+eval:
+  train_example_data_idx_list: []
+  val_example_data_idx_list: []
+  test_example_data_idx_list: []
