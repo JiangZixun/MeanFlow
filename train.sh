@@ -35,17 +35,19 @@ echo "Starting training Meanflow ..."
 #     # --use_wandb
 
 
-/home/jzx/anaconda3/envs/torchcfm/bin/python vis_JiT_Conv_RFDPIC.py \
-    --config configs/JiT-B_RFDPIC.yaml \
+/home/jzx/anaconda3/envs/torchcfm/bin/python train_JiT_RFDPIC.py \
+    --config configs/JiT-B_RFDPIC_pure_condition.yaml \
     --rfdpic_config configs/rfdpic_config.yaml \
     --rfdpic_ckpt pretrained_models/pretrained_RFDPIC_Dual_Rotation_Dyn.pt \
-    --log_dir logs/JiT-B \
-    --log_dir logs/JiT-B \
+    --log_dir logs/JiT-B_pure_condition \
     --sample_steps 10 \
-    --batch_size 2 \
+    --batch_size 8 \
     --mode test \
     --gpus 1 \
-    --ckpt_path logs/JiT-B/checkpoints/step_1000000-loss_0.1542.ckpt
+    --ckpt_path logs/JiT-B_pure_condition/checkpoints/step_100000-loss_0.1093.ckpt
+
+    # --use_wandb
+    # --ckpt_path logs/JiT-B/checkpoints/step_1000000-loss_0.1542.ckpt
     # --use_wandb
     # --ckpt_path logs/UNet_RFDPIC_Residual/checkpoints/step_500000-loss_0.1334.ckpt \
     
