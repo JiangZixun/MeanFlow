@@ -12,7 +12,7 @@ echo "Starting training CloudFlow ..."
     --batch_size 8 \
     --mode train \
     --gpus 1 \
-    --use_wandb
-    # --ckpt_path logs/CloudFlow_JiU_add_alpha_${alpha}/checkpoints/step_100000-loss_0.1293.ckpt
+    --use_wandb \
+    # --ckpt_path logs/JiT-B_RFDPIC_LCS/checkpoints/step_100000-loss_0.1257.ckpt
 
 echo "All training finished."

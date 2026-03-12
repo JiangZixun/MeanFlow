@@ -36,10 +36,13 @@ meanflow:
   # off | condition_only | loss_only | both
   lcs_enabled: true
   lcs_mode: both
-  lcs_alpha: 0.35
-  lcs_ridge_quantile: 0.90
-  lcs_lambda_grad: 0.05
-  lcs_ridge_boost: 2.0
+  # Anti-grid conservative preset (tune around these values):
+  lcs_alpha: 0.10
+  lcs_ridge_quantile: 0.97
+  lcs_smooth_kernel: 9
+  lcs_smooth_sigma: 2.0
+  lcs_lambda_grad: 0.01
+  lcs_ridge_boost: 0.5
 
 optimizer:
   lr: 1.0e-4
@@ -49,7 +52,7 @@ scheduler:
   num_warmup_steps: 5000
 
 training:
-  n_steps: 100000
+  n_steps: 50000
   gradient_clip_val: 1.0
   # batch_size passed from CLI
 

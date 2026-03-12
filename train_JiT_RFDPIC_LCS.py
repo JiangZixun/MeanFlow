@@ -83,6 +83,8 @@ class VideoLightningModule(pl.LightningModule):
             raise ValueError(f"Invalid lcs_mode={self.lcs_mode}, expected one of {sorted(valid_lcs_mode)}")
         self.lcs_alpha = float(meanflow_config.get('lcs_alpha', 0.35))
         self.lcs_ridge_q = float(meanflow_config.get('lcs_ridge_quantile', 0.90))
+        self.lcs_smooth_kernel = int(meanflow_config.get('lcs_smooth_kernel', 5))
+        self.lcs_smooth_sigma = float(meanflow_config.get('lcs_smooth_sigma', 1.0))
         self.lcs_lambda_grad = float(meanflow_config.get('lcs_lambda_grad', 0.05))
         self.lcs_ridge_boost = float(meanflow_config.get('lcs_ridge_boost', 2.0))
         self.lcs_use_condition = self.use_lcs and self.lcs_mode in {'condition_only', 'both'}
@@ -93,7 +95,9 @@ class VideoLightningModule(pl.LightningModule):
         print(
             f"--- LCS: enabled={self.use_lcs}, mode={self.lcs_mode}, "
             f"condition={self.lcs_use_condition}, loss={self.lcs_use_loss}, "
-            f"alpha={self.lcs_alpha}, q={self.lcs_ridge_q}, lambda_grad={self.lcs_lambda_grad} ---"
+            f"alpha={self.lcs_alpha}, q={self.lcs_ridge_q}, "
+            f"smooth_kernel={self.lcs_smooth_kernel}, smooth_sigma={self.lcs_smooth_sigma}, "
+            f"lambda_grad={self.lcs_lambda_grad} ---"
         )
 
         # 3. 实例化 U-Net
@@ -278,6 +282,8 @@ class VideoLightningModule(pl.LightningModule):
         lcs_weight, ridge_mask = compute_lcs_weight_map(
             displacement_fields=displacement_fields,
             ridge_quantile=self.lcs_ridge_q,
+            smooth_kernel=self.lcs_smooth_kernel,
+            smooth_sigma=self.lcs_smooth_sigma,
         )
         if self.lcs_use_condition:
             c_cond = apply_lcs_conditioning(
@@ -346,7 +352,8 @@ class VideoLightningModule(pl.LightningModule):
         self.log('train/lcs_mean', lcs_weight.mean(), on_step=True, on_epoch=False, prog_bar=False)
         self.log('train/lcs_ridge_ratio', ridge_mask.mean(), on_step=True, on_epoch=False, prog_bar=False)
         self.log('train/lcs_mode_condition', float(self.lcs_use_condition), on_step=True, on_epoch=False, prog_bar=False)
-        self.log('train/lcs_mode_loss', float(self.lcs_use_loss), on_step=True, on_epoch=False, prog_bar=False)
+        self.log('train/lcs_mode_loss_enabled', float(self.lcs_use_loss), on_step=True, on_epoch=False, prog_bar=False)
+        self.log('train/lcs_loss_weight', self.lcs_lambda_grad, on_step=True, on_epoch=False, prog_bar=False)
         self.log('learning_rate', self.trainer.optimizers[0].param_groups[0]['lr'], on_step=True, on_epoch=False)
         
         return loss
