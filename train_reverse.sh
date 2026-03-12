@@ -12,11 +12,10 @@ echo "F_pred as condition"
     --log_dir logs/JiT-B_reverse \
     --sample_steps 10 \
     --batch_size 8 \
-    --mode train \
-    --gpus 2 \
-    # --ckpt_path logs/JiT-B/chechkpoints/step_500000-loss_0.1448.ckpt
+    --mode test \
+    --gpus 1 \
+    --ckpt_path logs/JiT-B_reverse/checkpoints/step_200000-loss_0.2212.ckpt
     # --use_wandb
-    # --ckpt_path logs/UNet_RFDPIC_Residual/checkpoints/step_500000-loss_0.1334.ckpt \
     
 
 echo "Training finished."

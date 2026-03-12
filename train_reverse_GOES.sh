@@ -2,17 +2,20 @@
 cd /opt/data/private/MeanFlow/ 
 
 echo "Starting training Meanflow ..."
+echo "F_past as x_0"
+echo "F_pred as condition"
 
-/opt/conda/envs/mamba/bin/python train_JiT_RFDPIC.py \
-    --config configs/GOES/JiT-B_RFDPIC.yaml \
+/opt/conda/envs/mamba/bin/python train_JiT_RFDPIC_reverse.py \
+    --config configs/GOES/JiT-B_RFDPIC_reverse.yaml \
     --rfdpic_config configs/rfdpic_config.yaml \
     --rfdpic_ckpt pretrained_models/pretrained_RFDPIC_Dual_Rotation_Dyn_GOES.pt \
-    --log_dir logs/GOES/JiT-B \
+    --log_dir logs/GOES/JiT-B_reverse \
     --sample_steps 4 \
     --batch_size 8 \
-    --mode test \
+    --mode train \
     --gpus 1 \
-    --ckpt_path logs/GOES/JiT-B/checkpoints/step_800000-loss_0.0851.ckpt \
+    # --ckpt_path logs/JiT-B_reverse/checkpoints/step_200000-loss_0.2212.ckpt
+    # --use_wandb
     
 
 echo "Training finished."

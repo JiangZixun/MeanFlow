@@ -167,6 +167,11 @@ class VideoLightningModule(pl.LightningModule):
             'test': {'max': test_global_stats['Global Max'], 'min': test_global_stats['Global Min']}
         }
 
+        # 🔴 修改：初始化 8x6 的累加矩阵
+        self.register_buffer('running_mean_pred', torch.zeros(self.num_channels, self.num_timesteps))
+        self.register_buffer('running_mean_target', torch.zeros(self.num_channels, self.num_timesteps))
+        self.register_buffer('test_step_count', torch.tensor(0, dtype=torch.float32))
+
     # 🔴 新增：覆盖此方法以允许从旧 checkpoint 恢复
     def load_state_dict(self, state_dict, strict: bool = True):
         """
@@ -402,6 +407,17 @@ class VideoLightningModule(pl.LightningModule):
                 self.test_d_mse_metric[c][t](preds_denorm[:,t,c].contiguous(), targets_denorm[:,t,c].contiguous())
                 self.test_d_rmse_metric[c][t](preds_denorm[:,t,c].contiguous(), targets_denorm[:,t,c].contiguous())
 
+        # --- 🔴 核心修改：计算每个 Batch 的 [8, 6] 均值矩阵 ---
+        # 1. 先对空间维度 (H, W) 求均值 -> 得到 [B, 6, 8]
+        # 2. 再对 Batch 维度 (B) 求均值 -> 得到 [6, 8]
+        batch_mean_p = preds_denorm.mean(dim=(0, 3, 4))   # 结果形状: [6, 8]
+        batch_mean_t = targets_denorm.mean(dim=(0, 3, 4)) # 结果形状: [6, 8]
+        
+        # 3. 转置为 [8, 6] 并累加到 Buffer 中
+        self.running_mean_pred += batch_mean_p.T 
+        self.running_mean_target += batch_mean_t.T
+        self.test_step_count += 1.0
+
         # --- 5. 可视化 (例如：前 4 个 batch) ---
         # Visualiozation
         micro_batch_size = c_past.shape[0]
@@ -566,6 +582,28 @@ class VideoLightningModule(pl.LightningModule):
             plot_metrics_curve(self.metrics_save_dir, "rmse", d_rmse_metric)
             print(f"Test metrics saved and plotted in {self.metrics_save_dir}")
 
+        # 🔴 汇总所有 GPU 上的均值数据
+        # 使用 reduce 将所有卡的 sum 累加，然后除以总步数
+        avg_mean_pred = self.all_gather(self.running_mean_pred).mean(dim=0)
+        avg_mean_target = self.all_gather(self.running_mean_target).mean(dim=0)
+        # 注意：如果每张卡的 batch_size 一致，直接对 rank 维度取 mean 即可得到全局平均 [8, 6]
+
+        if self.trainer.is_global_zero:
+            # 转化为 numpy
+            final_pred_mat = avg_mean_pred.cpu().numpy()
+            final_target_mat = avg_mean_target.cpu().numpy()
+
+            # 保存为 .csv
+            # 每一行是一个通道 (共8行)，每一列是一个时间步 (共6列)
+            np.savetxt(os.path.join(self.metrics_save_dir, "mean_pred.csv"), final_pred_mat, delimiter=",")
+            np.savetxt(os.path.join(self.metrics_save_dir, "mean_target.csv"), final_target_mat, delimiter=",")
+            
+            print(f"Successfully saved 8x6 mean matrices to {self.metrics_save_dir}")
+
+        # 重置 Buffer 供下次使用（可选）
+        self.running_mean_pred.zero_()
+        self.running_mean_target.zero_()
+        self.test_step_count.zero_()
 
 def main():
     # ... (parser 和 args 不变, 仍然需要 --rfdpic_config 和 --rfdpic_ckpt) ...

@@ -44,9 +44,7 @@ echo "Starting training Meanflow ..."
     --batch_size 8 \
     --mode test \
     --gpus 1 \
-    --ckpt_path logs/JiT-B/chechkpoints/step_500000-loss_0.1448.ckpt
-    # --use_wandb
-    # --ckpt_path logs/UNet_RFDPIC_Residual/checkpoints/step_500000-loss_0.1334.ckpt \
+    --ckpt_path logs/JiT-B/chechkpoints/step_1000000-loss_0.1542.ckpt
     
 
 echo "Training finished."

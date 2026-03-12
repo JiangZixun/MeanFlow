@@ -8,10 +8,10 @@ echo "Starting training Meanflow ..."
     --rfdpic_config configs/rfdpic_config.yaml \
     --rfdpic_ckpt pretrained_models/pretrained_RFDPIC_Dual_Rotation_Dyn_GOES.pt \
     --log_dir logs/GOES/JiT-B_Gaussion \
-    --sample_steps 10 \
+    --sample_steps 4 \
     --batch_size 8 \
-    --mode train \
-    --gpus 1 
-    # --ckpt_path logs/JiT-H_Gaussion/checkpoints/step_120000-loss_0.1833.ckpt
+    --mode test \
+    --gpus 1 \
+    --ckpt_path logs/GOES/JiT-B_Gaussion/checkpoints/step_500000-loss_0.1201.ckpt
 
 echo "Training finished."
