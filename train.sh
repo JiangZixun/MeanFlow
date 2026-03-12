@@ -1,5 +1,5 @@
-# cd /mnt/data1/MeanFlow/ 
-cd /opt/data/private/MeanFlow/ 
+cd /mnt/data1/MeanFlow/ 
+# cd /opt/data/private/MeanFlow/ 
 
 echo "Starting training Meanflow ..."
 
@@ -35,11 +35,11 @@ echo "Starting training Meanflow ..."
 #     # --use_wandb
 
 
-/opt/conda/envs/mamba/bin/python train_JiT_RFDPIC.py \
-    --config configs/JiT-B_RFDPIC.yaml \
+/home/jzx/anaconda3/envs/torchcfm/bin/python train_JiT_RFDPIC.py \
+    --config configs/JiT-B_RFDPIC_pure_condition.yaml \
     --rfdpic_config configs/rfdpic_config.yaml \
     --rfdpic_ckpt pretrained_models/pretrained_RFDPIC_Dual_Rotation_Dyn.pt \
-    --log_dir logs/JiT-B \
+    --log_dir logs/JiT-B_pure_condition \
     --sample_steps 10 \
     --batch_size 8 \
     --mode test \
