@@ -54,6 +54,6 @@ logging:
 eval:
   train_example_data_idx_list: []
   val_example_data_idx_list: []
-  # test_example_data_idx_list: [8, 132, 368, 376] # for visualization
-  test_example_data_idx_list: [572, 696, 768] # for steps analysis
+  test_example_data_idx_list: [8, 132, 368, 376] # for visualization
+  # test_example_data_idx_list: [572, 696, 768] # for steps analysis
   # test_example_data_idx_list: []  # 测试时可视化的样本 ID 列表

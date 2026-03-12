@@ -426,7 +426,7 @@ class VideoLightningModule(pl.LightningModule):
             extreme_save_dir = os.path.join(self.example_save_dir, f"test_sample_{data_idx}")
             
             # save_prediction(
-            #     pred_tensor=self.denormalize(data=c_rfdpic, mode='test')[0],
+            #     pred_tensor=self.denormalize(data=c_past, mode='test')[0],
             #     save_dir=extreme_save_dir,
             #     name="context"
             # )
