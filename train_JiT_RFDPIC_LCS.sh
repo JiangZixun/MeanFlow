@@ -10,9 +10,9 @@ echo "Starting training CloudFlow ..."
     --rfdpic_ckpt pretrained_models/pretrained_RFDPIC_Dual_Rotation_Dyn.pt \
     --log_dir logs/JiT-B_RFDPIC_LCS \
     --batch_size 8 \
-    --mode train \
+    --mode test \
     --gpus 1 \
-    --use_wandb \
-    # --ckpt_path logs/JiT-B_RFDPIC_LCS/checkpoints/step_100000-loss_0.1257.ckpt
+    --ckpt_path logs/JiT-B_RFDPIC_LCS/checkpoints/step_050000-loss_0.2792.ckpt
+    # --use_wandb \
 
 echo "All training finished."
