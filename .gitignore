@@ -172,3 +172,7 @@ pretrained_models/
 pretrained_metrics/
 util_for_paper/
 plot/
+*.png
+*.pdf
+*.csv
+*.json
