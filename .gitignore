@@ -176,3 +176,5 @@ plot/
 *.pdf
 *.csv
 *.json
+.codex
+CloudSeg/experiments/*
