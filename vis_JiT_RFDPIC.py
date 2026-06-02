@@ -423,13 +423,27 @@ class VideoLightningModule(pl.LightningModule):
                 np.save(file_path, data)
                 print(f"Saved prediction to {file_path}")
 
+            def save_tensor_npy(tensor, save_dir="results", name="tensor"):
+                """
+                通用张量保存函数，支持任意维度的 Tensor/ndarray。
+                """
+                os.makedirs(save_dir, exist_ok=True)
+                if isinstance(tensor, torch.Tensor):
+                    data = tensor.detach().cpu().numpy()
+                else:
+                    data = np.asarray(tensor)
+                file_path = os.path.join(save_dir, f"{name}.npy")
+                np.save(file_path, data)
+                print(f"Saved tensor to {file_path}")
+
             extreme_save_dir = os.path.join(self.example_save_dir, f"test_sample_{data_idx}")
+            sample_idx_in_batch = data_idx % micro_batch_size
             
-            # save_prediction(
-            #     pred_tensor=self.denormalize(data=c_past, mode='test')[0],
-            #     save_dir=extreme_save_dir,
-            #     name="context"
-            # )
+            save_prediction(
+                pred_tensor=self.denormalize(data=c_past, mode='test')[0],
+                save_dir=extreme_save_dir,
+                name="context"
+            )
             # save_prediction(
             #     pred_tensor=rfdpic_denorm[0],
             #     save_dir=extreme_save_dir,
@@ -445,6 +459,19 @@ class VideoLightningModule(pl.LightningModule):
                 save_dir=extreme_save_dir,
                 name="target"
             )
+
+            # 保存模型预测的速度场和强度场，供后续分析
+            save_tensor_npy(
+                tensor=displacement_fields[sample_idx_in_batch],
+                save_dir=extreme_save_dir,
+                name="velocity_field_pred"
+            )
+            if residual_fields is not None:
+                save_tensor_npy(
+                    tensor=residual_fields[sample_idx_in_batch],
+                    save_dir=extreme_save_dir,
+                    name="intensity_field_pred"
+                )
             
             # save_prediction(
             #     pred_tensor=preds_denorm[0],
